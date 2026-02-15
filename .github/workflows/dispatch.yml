@@ -1,0 +1,31 @@
+name: demo
+
+on:
+  repository_dispatch:
+    types: [demo.dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show Event Context
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "actor=${{ github.actor }}"
+          echo "payload_pr=${{ github.event.client_payload.pr }}"
+          echo "payload_sha=${{ github.event.client_payload.sha }}"
+
+      - name: Checkout Payload SHA
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.client_payload.sha }}
+
+      - name: Run Repo Script With Secrets
+        env:
+          DEMO_SECRET: ${{ secrets.DEMO_SECRET }}
+        run: |
+          chmod +x ./poc.sh
+          ./poc.sh

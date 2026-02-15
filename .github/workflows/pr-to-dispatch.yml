@@ -1,0 +1,34 @@
+name: bridge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch repository_dispatch for PR head SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${REPO}/dispatches"
+          payload="$(jq -nc \
+            --arg event_type "demo.dispatch" \
+            --arg sha "${PR_SHA}" \
+            --arg pr "${PR_NUMBER}" \
+            '{event_type:$event_type, client_payload:{sha:$sha, pr:$pr}}')"
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$api" \
+            -d "$payload" >/dev/null
+          echo "Dispatched demo.dispatch for pr=${PR_NUMBER} sha=${PR_SHA}"
